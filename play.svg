@@ -6,14 +6,16 @@
   <script><![CDATA[
   (function(){
     var BASE='https://cdn.jsdelivr.net/gh/purpleskulltrooper85-svg/geometry-dash-wasm@main/';
-    fetch(BASE+'index.html',{cache:'no-store'})
+    var qs=location.search;
+    var game=qs?BASE+'index.html'+qs:BASE+'index.html';
+    fetch(game,{cache:'no-store'})
       .then(function(r){return r.text();})
       .then(function(html){
         html=html.replace('<head>','<head><base href="'+BASE+'">');
         location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
       })
       .catch(function(){
-        location.replace(BASE+'index.html');
+        location.replace(game);
       });
   })();
   ]]></script>
