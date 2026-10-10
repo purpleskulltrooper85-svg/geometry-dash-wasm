@@ -22,9 +22,10 @@ export default {
       return new Response('missing ?url=', { status: 400 });
     }
 
+    // boomlings' Cloudflare WAF rejects browser UAs and curl UAs.
+    // It only accepts an EMPTY User-Agent (see boomlings.dev/endpoints/generic)
     const headers = {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+      'User-Agent': '',
       'Content-Type':
         request.headers.get('Content-Type') ||
         'application/x-www-form-urlencoded'
