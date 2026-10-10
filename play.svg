@@ -15,7 +15,9 @@
         +JSON.stringify(proxy)
         +')}catch(e){}<\/script>')
       :'';
-    fetch(BASE+'index.html',{cache:'no-store'})
+    // cache-buster: jsDelivr branch URLs can serve stale copies for hours,
+    // a unique query gives a fresh edge fetch every time
+    fetch(BASE+'index.html?cb='+Date.now(),{cache:'no-store'})
       .then(function(r){return r.text();})
       .then(function(html){
         html=html.replace('<head>','<head><base href="'+BASE+'">'+inject);
