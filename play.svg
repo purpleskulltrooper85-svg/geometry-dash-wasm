@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+  <rect width="800" height="450" fill="#123c8c"/>
+  <text x="400" y="195" text-anchor="middle" font-family="monospace" font-size="34" font-weight="bold" fill="#8ef23d">GEOMETRY DASH WASM</text>
+  <text x="400" y="245" text-anchor="middle" font-family="monospace" font-size="18" fill="#ffffff">LOADING...</text>
+  <text x="400" y="415" text-anchor="middle" font-family="monospace" font-size="13" fill="#9db8e0">If nothing happens, JavaScript is disabled in your browser.</text>
+  <script><![CDATA[
+  (function(){
+    var BASE='https://cdn.jsdelivr.net/gh/purpleskulltrooper85-svg/geometry-dash-wasm@main/';
+    fetch(BASE+'index.html',{cache:'no-store'})
+      .then(function(r){return r.text();})
+      .then(function(html){
+        html=html.replace('<head>','<head><base href="'+BASE+'">');
+        location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+      })
+      .catch(function(){
+        location.replace(BASE+'index.html');
+      });
+  })();
+  ]]></script>
+</svg>
