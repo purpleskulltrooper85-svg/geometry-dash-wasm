@@ -8,8 +8,8 @@ window.__gdScramjetOff=/[?&]noscramjet(=|&|$)/.test(location.search);
 
 window.__gdProxyBases=(function(){
 var d=[
-"https://api.sngdu.com/?{path}",
-"https://api.ixl.college/?{path}"
+"https://api.sngdu.com/{path}",
+"https://api.ixl.college/{path}"
 ];
 try{
 var q=new URLSearchParams(location.search).get("proxy");
