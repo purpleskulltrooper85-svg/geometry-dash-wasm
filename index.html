@@ -928,6 +928,57 @@ wasm:4,
 data:15
 };
 
+function gdFetchPart(url,tries){
+
+var attempt=0;
+
+function go(){
+
+attempt++;
+
+var ctrl=new AbortController();
+
+var timer=setTimeout(function(){
+ctrl.abort();
+},45000);
+
+return fetch(url,{cache:'no-store',signal:ctrl.signal})
+.then(function(r){
+
+if(!r.ok)
+throw new Error(url+' HTTP '+r.status);
+
+return r.arrayBuffer();
+
+})
+.then(function(buf){
+
+clearTimeout(timer);
+
+return buf;
+
+})
+.catch(function(e){
+
+clearTimeout(timer);
+
+if(attempt<tries){
+
+say('[retry] '+url+' attempt '+attempt+': '+e);
+
+return new Promise(function(res){
+setTimeout(res,1500*attempt);
+}).then(go);
+
+}
+
+throw e;
+});
+}
+
+return go();
+}
+
 function gdLoadSplitFile(which,onProgress){
 
 var base=which==='wasm'
@@ -966,14 +1017,7 @@ var url=base+'.part'+String(i).padStart(3,'0');
 
 say('['+which+'] loading '+url);
 
-return fetch(url,{cache:'no-store'}).then(function(r){
-
-if(!r.ok)
-throw new Error(url+' HTTP '+r.status);
-
-return r.arrayBuffer();
-
-}).then(function(buf){
+return gdFetchPart(url,6).then(function(buf){
 
 var chunk=new Uint8Array(buf);
 
