@@ -338,7 +338,7 @@ height:100vh;
 
 #logoDock{
 flex:0 0 auto;
-display:flex;
+display:none;
 justify-content:center;
 padding:6px 0 2px;
 opacity:0;
@@ -360,17 +360,13 @@ min-height:0;
 display:flex;
 justify-content:center;
 align-items:center;
-transform:translateY(-170%);
-transition:transform .55s cubic-bezier(.2,.85,.25,1);
 }
 
 #stage.in{transform:translateY(0);}
 
 canvas{
-max-width:96vw;
-max-height:100%;
-width:auto;
-height:auto;
+width:100vw;
+height:100vh;
 background:#000;
 image-rendering:pixelated;
 outline:none;
@@ -528,6 +524,7 @@ flex-direction:column;
 align-items:center;
 justify-content:space-between;
 background:transparent;
+cursor:pointer;
 transition:opacity .5s;
 }
 
@@ -560,17 +557,11 @@ user-select:none;
 transition:transform 1.15s cubic-bezier(.45,0,.6,1),opacity 1.15s linear;
 }
 
-#loadFly img{
-max-height:150px;
-max-width:40vw;
-width:auto;
-height:auto;
-display:block;
-transition:transform .15s;
-}
-
-#loadFly img:hover{
-transform:scale(1.08);
+#loadText{
+font:bold 22px/1 monospace;
+color:#fff;
+letter-spacing:3px;
+text-shadow:0 2px 6px #000;
 }
 
 #loadFly.down{
@@ -591,6 +582,34 @@ transition:color .2s;
 
 #fsBtn:hover,#clearBtn:hover{
 color:#fff;
+}
+
+#cornerBtns{
+position:fixed;
+top:8px;
+right:10px;
+z-index:20;
+display:flex;
+gap:6px;
+opacity:.5;
+transition:opacity .2s;
+}
+
+#cornerBtns:hover{
+opacity:1;
+}
+
+#fpsHud{
+position:fixed;
+top:8px;
+left:10px;
+z-index:20;
+font:13px/1 monospace;
+color:#fff;
+opacity:.85;
+text-shadow:0 1px 3px #000;
+pointer-events:none;
+user-select:none;
 }
 
 #credit{
@@ -651,51 +670,15 @@ display:block;
 <canvas id="canvas" width="1920" height="1080"></canvas>
 </div>
 
-<div id="midbar">
+<div id="fpsHud">FPS: --</div>
 
-<div id="bars">
-
-<div class="abrow">
-<span class="ablabel" id="wasmLabel">WASM</span>
-<div class="abtrack">
-<div class="abfill" id="wasmFill"></div>
-</div>
-<span class="abpct" id="wasmPct">0%</span>
-</div>
-
-<div class="abrow">
-<span class="ablabel" id="dataLabel">DATA</span>
-<div class="abtrack">
-<div class="abfill" id="dataFill"></div>
-</div>
-<span class="abpct" id="dataPct">0%</span>
-</div>
-
-</div>
-
-<div id="bootbars">
-<div class="abtrack">
-<div class="abfill" id="bootFill"></div>
-</div>
-<span class="abpct" id="bootPct">0%</span>
-</div>
-
-<div id="fps">
-<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
-<rect x="1.2" y="2" width="13.6" height="9" rx="1.6" fill="none" stroke="#888" stroke-width="1.4"/>
-<rect x="6.5" y="12" width="3" height="2" fill="#888"/>
-<rect x="4.5" y="14.2" width="7" height="1.3" rx="0.6" fill="#888"/>
-</svg>
-<span id="fpsval">-- fps</span>
-</div>
+<div id="cornerBtns">
 
 <button id="fsBtn" type="button">Fullscreen</button>
 
 <button id="clearBtn" type="button" title="Delete saved progress and login">
 Clear cache
 </button>
-
-<span id="credit">from bog, &lt;3</span>
 
 </div>
 
@@ -710,8 +693,7 @@ Clear cache
 </div>
 
 <div id="loadFly">
-<img src="ref/load.png" alt="load"
-onerror="this.parentElement.textContent='LOADING…';this.remove()">
+<div id="loadText">LOADING</div>
 </div>
 
 </div>
@@ -874,6 +856,28 @@ var GD_SIZE_HINT={
 wasm:70192990,
 data:314500859
 };
+
+var gdLoaded={
+wasm:0,
+data:0
+};
+
+var GD_TOTAL_MB=Math.round(
+(GD_SIZE_HINT.wasm+GD_SIZE_HINT.data)/1048576
+);
+
+function updateLoadText(){
+
+var el=document.getElementById('loadText');
+
+if(!el)return;
+
+var loaded=gdLoaded.wasm+gdLoaded.data;
+
+el.textContent='LOADING '+
+Math.min(GD_TOTAL_MB,Math.round(loaded/1048576))+
+'/'+GD_TOTAL_MB+' MB';
+}
 
 var GD_BUILD_ID='a6f253af4d4bd0a4';
 
@@ -1086,6 +1090,10 @@ return 0;
 
 function setAssetBar(which,loaded,total){
 
+gdLoaded[which]=Math.max(gdLoaded[which]||0,loaded);
+
+updateLoadText();
+
 var fill=
 which==='wasm'
 ?wasmFill
@@ -1184,6 +1192,9 @@ assetsDone();
 
 function forceAssetsDone(){
 
+gdLoaded.wasm=GD_SIZE_HINT.wasm;
+gdLoaded.data=GD_SIZE_HINT.data;
+
 gdAssetDone.wasm=true;
 gdAssetDone.data=true;
 
@@ -1266,6 +1277,13 @@ wasm:false,
 data:false
 };
 
+gdLoaded={
+wasm:0,
+data:0
+};
+
+updateLoadText();
+
 var bars=document.getElementById('bars');
 var boot=document.getElementById('bootbars');
 
@@ -1300,10 +1318,36 @@ if(bootPct)
 bootPct.textContent='0%';
 }
 
+function gdHideStart(){
+
+var startEl=document.getElementById('start');
+
+if(!startEl||startEl.classList.contains('hide'))
+return;
+
+startEl.classList.add('hide');
+
+setTimeout(function(){
+
+startEl.style.display='none';
+
+window.__gdInputReady=true;
+
+if(window.__gdAckFocus)
+window.__gdAckFocus();
+
+var c=document.getElementById('console');
+
+if(c)c.classList.add('in');
+
+},600);
+}
+
 window.gdFirstFrame=function(){
 
 forceAssetsDone();
 setProgress(100);
+gdHideStart();
 };
 
 var gdSaveTimer=null;
@@ -1394,7 +1438,7 @@ gdProgressTick();
 
 (function(){
 
-var fpsEl=document.getElementById('fpsval');
+var fpsEl=document.getElementById('fpsHud');
 
 var lastT=performance.now();
 var lastN=0;
@@ -1425,9 +1469,10 @@ if(n>0){
 if(primed)
 
 fpsEl.textContent=
+'FPS: '+
 Math.round(
 (n-lastN)*1000/(now-lastT)
-)+' fps';
+);
 
 lastN=n;
 primed=true;
@@ -1437,11 +1482,13 @@ if(!window.__gdGotFrame){
 window.__gdGotFrame=true;
 
 setProgress(100);
+
+gdHideStart();
 }
 }
 else if(!primed){
 
-fpsEl.textContent='-- fps';
+fpsEl.textContent='FPS: --';
 }
 
 lastT=now;
@@ -2042,78 +2089,6 @@ window.__gdLoadStarted=true;
 
 resetProgress();
 
-var startEl=document.getElementById('start');
-var flyEl=document.getElementById('logoFly');
-
-var s=0.32;
-
-try{
-
-var dh=
-document.querySelector(
-'#logoDock img'
-).getBoundingClientRect().height;
-
-var fh=
-flyEl.querySelector(
-'img'
-).getBoundingClientRect().height;
-
-if(
-dh>0&&
-fh>0&&
-dh/fh<1
-)
-s=dh/fh;
-
-}catch(e){}
-
-flyEl.style.transform=
-'translateY(-13vh) scale('+s+')';
-
-document.getElementById(
-'loadFly'
-).classList.add('down');
-
-setTimeout(function(){
-startEl.classList.add('hide');
-},420);
-
-setTimeout(function(){
-document.getElementById(
-'logoDock'
-).classList.add('in');
-},420);
-
-setTimeout(function(){
-document.getElementById(
-'stage'
-).classList.add('in');
-},430);
-
-setTimeout(function(){
-document.getElementById(
-'midbar'
-).classList.add('in');
-},480);
-
-setTimeout(function(){
-document.getElementById(
-'console'
-).classList.add('in');
-},540);
-
-setTimeout(function(){
-
-startEl.style.display='none';
-
-window.__gdInputReady=true;
-
-if(window.__gdAckFocus)
-window.__gdAckFocus();
-
-},1700);
-
 function loadModule(){
 
 fetch(
@@ -2155,7 +2130,7 @@ loadModule();
 }
 
 document.getElementById(
-'loadFly'
+'start'
 ).addEventListener(
 'click',
 gdStart
