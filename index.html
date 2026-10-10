@@ -8,9 +8,8 @@ window.__gdScramjetOff=/[?&]noscramjet(=|&|$)/.test(location.search);
 
 window.__gdProxyBases=(function(){
 var d=[
-"https://proxy.corsfix.com/?",
-"https://corsproxy.io/?url=",
-"https://api.allorigins.win/raw?url="
+"https://api.sngdu.com/?{path}",
+"https://api.ixl.college/?{path}"
 ];
 try{
 var q=new URLSearchParams(location.search).get("proxy");
@@ -28,7 +27,7 @@ window.__gdProxyBase=window.__gdProxyBases[0];
 
 window.__gdProxyPass=[
 "googletagmanager","cloudflareinsights","jsdelivr","gstatic",
-"googleapis","corsfix","corsproxy","allorigins"
+"googleapis","sngdu","ixl.college"
 ];
 
 window.__gdProxyTarget=function(u){
@@ -70,7 +69,30 @@ return null;
 };
 
 window.__gdProxyBuild=function(base,target){
+
+if(base.indexOf("{path}")>=0){
+
+try{
+var url=new URL(target);
+
+var key=/^(www\.)?boomlings\.com$/i.test(url.hostname)?"b":
+(/^(www\.)?robtopgames\.org$/i.test(url.hostname)?"r":
+(/^audio\.ngfiles\.com$/i.test(url.hostname)?"n":
+(/^geometrydashfiles\.b-cdn\.net$/i.test(url.hostname)?"c":null)));
+
+if(key===null)return null;
+
+return base.replace(
+"{path}",
+"?"+key+"="+encodeURIComponent(
+url.pathname.replace(/^\//,"")+url.search
+)
+);
+}catch(e){return null;}
+}
+
 if(base.indexOf("corsfix")>=0)return base+target;
+
 return base+encodeURIComponent(target);
 };
 
@@ -78,7 +100,7 @@ return base+encodeURIComponent(target);
 var nativeFetch=window.fetch.bind(window);
 
 function retryable(st){
-return st===401||st===403||st===429||st===503;
+return st===401||st===403||st===429||st>=500;
 }
 
 function secret(init){
@@ -131,6 +153,14 @@ var url=window.__gdProxyBuild(
 window.__gdProxyBases[idx],
 target
 );
+
+if(url===null){
+
+if(idx<window.__gdProxyBases.length-1)
+return attempt(input,init,target,form,idx+1);
+
+return nativeFetch(input,init);
+}
 
 var out=(typeof input==="string")
 ?url
@@ -195,8 +225,12 @@ return rest();
 };
 
 var nativeOpen=XMLHttpRequest.prototype.open;
+var nativeSend=XMLHttpRequest.prototype.send;
+var nativeHeader=XMLHttpRequest.prototype.setRequestHeader;
 
 XMLHttpRequest.prototype.open=function(method,url){
+
+var state=null;
 
 if(typeof url==="string"){
 
@@ -206,15 +240,135 @@ if(target!==null){
 
 var form=url.indexOf("/__proxy?url=")>=0;
 
-if(!(form&&window.__gdProxyLocal!==false))
-arguments[1]=window.__gdProxyBuild(
-window.__gdProxyBase||window.__gdProxyBases[0],
+if(!(form&&window.__gdProxyLocal!==false)){
+
+var base=
+window.__gdProxyBase||window.__gdProxyBases[0];
+
+var idx=Math.max(
+0,
+window.__gdProxyBases.indexOf(base)
+);
+
+state={
+args:Array.prototype.slice.call(arguments),
+target:target,
+idx:idx,
+headers:[]
+};
+
+var built=window.__gdProxyBuild(
+window.__gdProxyBases[idx],
 target
 );
+
+if(built!==null)state.args[1]=built;
+}
 }
 }
 
+this.__gdX=state;
+
 return nativeOpen.apply(this,arguments);
+};
+
+function gdXhrRetry(xhr,state){
+
+if(state.retried)
+return;
+
+state.retried=true;
+
+var idx=state.idx+1;
+
+if(idx>=window.__gdProxyBases.length)
+return;
+
+var built=window.__gdProxyBuild(
+window.__gdProxyBases[idx],
+state.target
+);
+
+if(built===null)
+return;
+
+state.idx=idx;
+
+var args=state.args.slice();
+
+args[1]=built;
+
+var rt=xhr.responseType;
+var wc=xhr.withCredentials;
+var to=xhr.timeout;
+
+nativeOpen.apply(xhr,args);
+
+xhr.responseType=rt;
+xhr.withCredentials=wc;
+xhr.timeout=to;
+
+for(var i=0;i<state.headers.length;i++)
+nativeHeader.apply(xhr,state.headers[i]);
+
+nativeSend.call(xhr,state.body);
+}
+
+XMLHttpRequest.prototype.setRequestHeader=function(name,value){
+
+var r=nativeHeader.apply(this,arguments);
+
+var s=this.__gdX;
+
+if(s)s.headers.push([name,value]);
+
+return r;
+};
+
+XMLHttpRequest.prototype.send=function(body){
+
+var s=this.__gdX;
+
+if(s)s.body=body;
+
+if(s&&!s.listeners){
+
+s.listeners=true;
+
+var xhr=this;
+
+function failed(e){
+
+var st=xhr.__gdX;
+
+if(!st||st.retried)
+return;
+
+if(e.type==="readystatechange"&&(
+xhr.readyState!==4||
+xhr.status<500
+))
+return;
+
+e.stopImmediatePropagation();
+
+gdXhrRetry(xhr,st);
+}
+
+xhr.addEventListener("readystatechange",failed,true);
+xhr.addEventListener("error",failed,true);
+xhr.addEventListener("timeout",failed,true);
+}
+
+try{
+return nativeSend.apply(this,arguments);
+}catch(e){
+
+if(s&&!s.retried)
+gdXhrRetry(this,s);
+
+throw e;
+}
 };
 })();
 </script>
