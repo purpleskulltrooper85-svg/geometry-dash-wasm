@@ -6,16 +6,23 @@
   <script><![CDATA[
   (function(){
     var BASE='https://cdn.jsdelivr.net/gh/purpleskulltrooper85-svg/geometry-dash-wasm@main/';
-    var qs=location.search;
-    var game=qs?BASE+'index.html'+qs:BASE+'index.html';
-    fetch(game,{cache:'no-store'})
+    var proxy=null;
+    try{
+      proxy=new URLSearchParams(location.search).get('proxy');
+    }catch(e){}
+    var inject=proxy
+      ?('<script>try{localStorage.setItem("gdProxyBase",'
+        +JSON.stringify(proxy)
+        +')}catch(e){}<\/script>')
+      :'';
+    fetch(BASE+'index.html',{cache:'no-store'})
       .then(function(r){return r.text();})
       .then(function(html){
-        html=html.replace('<head>','<head><base href="'+BASE+'">');
+        html=html.replace('<head>','<head><base href="'+BASE+'">'+inject);
         location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
       })
       .catch(function(){
-        location.replace(game);
+        location.replace(BASE+'index.html');
       });
   })();
   ]]></script>
